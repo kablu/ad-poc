@@ -1,0 +1,65 @@
+services:
+  samba-ad:
+    image: nowsci/samba-domain
+    container_name: samba-ad-dc
+    hostname: dc01
+    privileged: true
+    environment:
+      - DOMAIN=corp.local
+      - DOMAINPASS=P@ssw0rd123!
+      - DNSFORWARDER=8.8.8.8
+      - HOSTIP=0.0.0.0
+      - INSECURELDAP=true
+      - NOCOMPLEXITY=true
+    ports:
+      # DNS - using different ports to avoid conflicts
+      - "5353:53/tcp"
+      - "5353:53/udp"
+      # Kerberos
+      - "88:88/tcp"
+      - "88:88/udp"
+      # RPC
+      - "135:135/tcp"
+      # NetBIOS
+      - "137:137/udp"
+      - "138:138/udp"
+      - "139:139/tcp"
+      # LDAP
+      - "389:389/tcp"
+      - "389:389/udp"
+      # SMB
+      - "445:445/tcp"
+      # Kerberos Password
+      - "464:464/tcp"
+      - "464:464/udp"
+      # LDAPS
+      - "636:636/tcp"
+      # Global Catalog
+      - "3268:3268/tcp"
+      - "3269:3269/tcp"
+    volumes:
+      - samba-data:/var/lib/samba
+      - samba-config:/etc/samba
+    networks:
+      ad-net:
+        ipv4_address: 172.30.0.10
+    restart: unless-stopped
+   
+    # WSL compatibility
+    cap_add:
+      - SYS_ADMIN
+    tmpfs:
+      - /tmp
+
+volumes:
+  samba-data:
+  samba-config:
+
+networks:
+  ad-net:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.30.0.0/16
+          gateway: 172.30.0.1

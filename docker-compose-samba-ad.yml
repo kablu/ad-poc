@@ -1,0 +1,131 @@
+services:
+  # Samba Active Directory Domain Controller
+  samba-ad:
+    image: nowsci/samba-domain:latest
+    container_name: samba-ad-dc
+    hostname: dc1
+    domainname: sambaad.local
+    privileged: true
+    restart: unless-stopped
+
+    environment:
+      # Domain Configuration
+      # DOMAIN = NetBIOS name (short name, max 15 chars, uppercase)
+      # REALM is auto-generated from domainname (sambaad.local -> SAMBAAD.LOCAL)
+      # DOMAIN must be different from first part of REALM
+      DOMAIN: CORP
+      DOMAINPASS: CompanyAdmin@123
+      DNSFORWARDER: 8.8.8.8
+      HOSTIP: 172.20.0.10
+
+      # Additional Settings
+      INSECURELDAP: "true"
+      NOCOMPLEXITY: "true"
+
+    ports:
+      # DNS - Commented out to avoid port conflict with system DNS
+      # If you need DNS access from host, stop systemd-resolved first:
+      # sudo systemctl stop systemd-resolved
+      # Then uncomment the lines below
+      # - "53:53/tcp"
+      # - "53:53/udp"
+
+      # LDAP (Required for RA application)
+      - "389:389/tcp"
+
+      # LDAPS (Required for secure LDAP)
+      - "636:636/tcp"
+
+      # Kerberos (Optional - needed for Windows domain join)
+      # - "88:88/tcp"
+      # - "88:88/udp"
+      # - "464:464/tcp"
+      # - "464:464/udp"
+
+      # SMB/CIFS (Optional - needed for file sharing)
+      # - "445:445/tcp"
+      # - "139:139/tcp"
+
+      # Global Catalog (Optional - needed for enterprise features)
+      # - "3268:3268/tcp"
+      # - "3269:3269/tcp"
+
+    volumes:
+      - samba-ad-data:/var/lib/samba
+      - samba-ad-config:/etc/samba/external
+      - samba-ad-log:/var/log/samba
+
+    networks:
+      ad-network:
+        ipv4_address: 172.20.0.10
+
+    dns:
+      - 8.8.8.8
+      - 8.8.4.4
+
+    cap_add:
+      - NET_ADMIN
+      - SYS_ADMIN
+      - SYS_TIME
+
+    healthcheck:
+      test: ["CMD", "smbclient", "-L", "localhost", "-U", "%"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 60s
+
+  # LDAP Admin Web Interface (phpLDAPadmin)
+  ldap-admin:
+    image: osixia/phpldapadmin:latest
+    container_name: ldap-admin
+    hostname: ldapadmin
+    restart: unless-stopped
+
+    environment:
+      PHPLDAPADMIN_LDAP_HOSTS: samba-ad
+      PHPLDAPADMIN_HTTPS: "false"
+
+    ports:
+      - "8080:80"
+
+    networks:
+      - ad-network
+
+    depends_on:
+      - samba-ad
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  # Apache Directory Studio (Alternative LDAP Browser)
+  # Uncomment if you prefer a different LDAP admin tool
+  # ldap-browser:
+  #   image: berhan/apache-directory-studio:latest
+  #   container_name: ldap-browser
+  #   ports:
+  #     - "5901:5901"
+  #   networks:
+  #     - ad-network
+  #   depends_on:
+  #     - samba-ad
+
+volumes:
+  samba-ad-data:
+    driver: local
+  samba-ad-config:
+    driver: local
+  samba-ad-log:
+    driver: local
+
+networks:
+  ad-network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1

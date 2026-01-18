@@ -1,0 +1,82 @@
+# RA Web Application Configuration
+
+server:
+  port: 8080
+  servlet:
+    context-path: /
+
+spring:
+  application:
+    name: ra-web-service
+
+  # Database Configuration
+  datasource:
+    url: jdbc:postgresql://localhost:5432/ra_db
+    username: ra_user
+    password: change_this_password
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+
+  # JPA Configuration
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+        jdbc:
+          batch_size: 20
+        order_inserts: true
+        order_updates: true
+
+  # Logging Configuration
+logging:
+  level:
+    root: INFO
+    com.company.ra: DEBUG
+    org.springframework.security: DEBUG
+    org.springframework.web: INFO
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
+  file:
+    name: logs/ra-web.log
+    max-size: 10MB
+    max-history: 30
+
+# Active Directory Configuration
+ad:
+  url: ldap://ad.company.com:389
+  baseDn: DC=company,DC=com
+  serviceAccount:
+    username: CN=RA Service Account,OU=Service Accounts,DC=company,DC=com
+    password: change_this_password
+
+# JWT Configuration
+jwt:
+  secret: change-this-secret-key-in-production-must-be-at-least-256-bits-long
+  expiration: 86400  # 24 hours in seconds
+  issuer: RA-Service
+
+# Certificate Authority Configuration
+ca:
+  api:
+    baseUrl: https://ca.company.com/api/v1
+    username: ra_client
+    password: change_this_password
+
+# Management Endpoints (Actuator)
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+  endpoint:
+    health:
+      show-details: when-authorized
