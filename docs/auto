@@ -1,0 +1,47 @@
+ Auto-Enrollment Flow
+ 
+Example: I am a company employee who needs an email certificate
+
+*Step 1: Initial Setup (Pre-configured by RA Administrator)*
+
+RA Administrator has created an Auto-Enrollment Policy
+
+ * Policy Name: "Employee Digital Sign Certificate"  
+ * Certificate Template: Digital Sign Template 
+ * Trigger: ON_LOGIN (when user logs in)
+ * Eligible Groups: "All Employees" (AD Group)
+ * Auto-Approve: Yes (no manual approval needed) 
+ * Auto-Renew: Yes (30 days before expiry)   
+
+The RA Administrator has pre-configured a policy that automatically issues digital signing certificates to all employees when they login.
+The policy defines who gets certificates (all employees), WHEN (on login), and WHAT type (email certificates).
+Auto-approval means no human intervention needed - fully automated.
+
+* Step 2: I will Login to the RA Portal*
+I will access the RA web portal 
+I will enter my standard Active Directory username and password
+
+Step 3: RA Authenticates Against Active Directory
+The RA system doesn't store passwords - it validates against Active Directory (company's central user database)
+AD not only confirms my identity but also returns my profile attributes like name, email, department, and group memberships and other attributes.
+These attributes will be used to build certificate's Subject DN
+The group memberships determine if you're eligible for auto-enrollment.
+
+Step 4: Auto-Enrollment Trigger (Automatic Background Process)
+This happens IMMEDIATELY after successful authentication, in the background. Its like a daemon/scheduler.
+The RA system searches for all auto-enrollment policies where the trigger is "ON_LOGIN"
+For each policy found, it checks if you're eligible by matching your AD groups against the policy's eligible groups
+It then checks if you already have a valid certificate for this template i.e "Digital Sign Certificate"
+If no valid certificate exists, the auto-enrollment process begins for ENROLL NEW CERTIFICATE!
+
+Step 5: Automatic Certificate Generation (Background Process)
+RA Generates new Key Pair 
+The "Subject DN"  construction is from AD details of user
+RA Generates CSR
+Because the policy has "Auto-Approve" enabled, no human review is needed
+The request bypasses the approval queue and goes directly to the CA
+RA submits the CSR to the CA  
+CA processes the request:
+CA returns the issued certificate   
+RA post or send certificate through end user response URL or user can download through RA dashboard or notification in the dashboard.
+  
