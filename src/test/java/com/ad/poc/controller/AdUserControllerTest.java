@@ -1,0 +1,138 @@
+package com.ad.poc.controller;
+
+import com.ad.poc.dto.AdUserDto;
+import com.ad.poc.service.AdUserService;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
+import org.springframework.test.web.servlet.MockMvc;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Optional;
+
+import static org.hamcrest.Matchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.*;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
+
+@WebMvcTest(AdUserController.class)
+@AutoConfigureMockMvc(addFilters = false)
+class AdUserControllerTest {
+
+    @Autowired
+    private MockMvc mockMvc;
+
+    @MockitoBean
+    private AdUserService adUserService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
+    private AdUserDto sampleDto;
+
+    @BeforeEach
+    void setUp() {
+        sampleDto = new AdUserDto("jdoe", "John Doe", "jdoe@company.com");
+        sampleDto.setId(1L);
+        sampleDto.setDepartment("Engineering");
+        sampleDto.setTitle("Developer");
+    }
+
+    @Test
+    void create_shouldReturn201WithCreatedUser() throws Exception {
+        when(adUserService.create(any(AdUserDto.class))).thenReturn(sampleDto);
+
+        AdUserDto requestBody = new AdUserDto("jdoe", "John Doe", "jdoe@company.com");
+
+        mockMvc.perform(post("/api/v1/ad-users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(requestBody)))
+                .andExpect(status().isCreated())
+                .andExpect(jsonPath("$.id", is(1)))
+                .andExpect(jsonPath("$.samAccountName", is("jdoe")))
+                .andExpect(jsonPath("$.displayName", is("John Doe")))
+                .andExpect(jsonPath("$.email", is("jdoe@company.com")));
+    }
+
+    @Test
+    void create_shouldReturn400WhenSamAccountNameBlank() throws Exception {
+        AdUserDto invalid = new AdUserDto("", "John Doe", "jdoe@company.com");
+
+        mockMvc.perform(post("/api/v1/ad-users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void getById_shouldReturn200WhenFound() throws Exception {
+        when(adUserService.getById(1L)).thenReturn(Optional.of(sampleDto));
+
+        mockMvc.perform(get("/api/v1/ad-users/1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.samAccountName", is("jdoe")))
+                .andExpect(jsonPath("$.displayName", is("John Doe")));
+    }
+
+    @Test
+    void getById_shouldReturn404WhenNotFound() throws Exception {
+        when(adUserService.getById(99L)).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/v1/ad-users/99"))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void getAll_shouldReturnListOfUsers() throws Exception {
+        AdUserDto second = new AdUserDto("asmith", "Alice Smith", "asmith@company.com");
+        second.setId(2L);
+        when(adUserService.getAll()).thenReturn(Arrays.asList(sampleDto, second));
+
+        mockMvc.perform(get("/api/v1/ad-users"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(2)))
+                .andExpect(jsonPath("$[0].samAccountName", is("jdoe")))
+                .andExpect(jsonPath("$[1].samAccountName", is("asmith")));
+    }
+
+    @Test
+    void getAll_withDepartmentFilter_shouldReturnFilteredList() throws Exception {
+        when(adUserService.getByDepartment("Engineering")).thenReturn(List.of(sampleDto));
+
+        mockMvc.perform(get("/api/v1/ad-users").param("department", "Engineering"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].department", is("Engineering")));
+    }
+
+    @Test
+    void update_shouldReturn200WithUpdatedUser() throws Exception {
+        AdUserDto updatedDto = new AdUserDto("jdoe", "John Updated", "jdoe-new@company.com");
+        updatedDto.setId(1L);
+        when(adUserService.update(eq(1L), any(AdUserDto.class))).thenReturn(updatedDto);
+
+        mockMvc.perform(put("/api/v1/ad-users/1")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updatedDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.displayName", is("John Updated")));
+    }
+
+    @Test
+    void delete_shouldReturn204() throws Exception {
+        doNothing().when(adUserService).delete(1L);
+
+        mockMvc.perform(delete("/api/v1/ad-users/1"))
+                .andExpect(status().isNoContent());
+
+        verify(adUserService).delete(1L);
+    }
+}
