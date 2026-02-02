@@ -1,7 +1,7 @@
-package com.ad.poc.controller;
+package ad.poc.controller;
 
-import com.ad.poc.dto.AdUserDto;
-import com.ad.poc.service.AdUserService;
+import ad.poc.dto.AdUserDto;
+import ad.poc.service.AdUserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;

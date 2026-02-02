@@ -1,4 +1,4 @@
-package com.ad.poc.model;
+package ad.poc.model;
 
 import org.springframework.ldap.odm.annotations.Attribute;
 import org.springframework.ldap.odm.annotations.DnAttribute;

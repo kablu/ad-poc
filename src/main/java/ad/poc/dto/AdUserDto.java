@@ -1,4 +1,4 @@
-package com.ad.poc.dto;
+package ad.poc.dto;
 
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;

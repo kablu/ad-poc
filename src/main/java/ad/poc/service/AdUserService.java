@@ -1,8 +1,8 @@
-package com.ad.poc.service;
+package ad.poc.service;
 
-import com.ad.poc.dto.AdUserDto;
-import com.ad.poc.model.AdUser;
-import com.ad.poc.repository.AdUserLdapRepository;
+import ad.poc.dto.AdUserDto;
+import ad.poc.model.AdUser;
+import ad.poc.repository.AdUserLdapRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -18,9 +18,6 @@ public class AdUserService {
 
     private static final Logger log = LoggerFactory.getLogger(AdUserService.class);
 
-    // AD userAccountControl flag: 512 = normal account enabled
-    private static final int UF_NORMAL_ACCOUNT = 512;
-    // AD userAccountControl flag: 514 = normal account disabled
     private static final int UF_ACCOUNT_DISABLE = 2;
 
     private final AdUserLdapRepository ldapRepository;
@@ -30,7 +27,7 @@ public class AdUserService {
     }
 
     /**
-     * List all users from Active Directory.
+     * LIST - Get all users from Active Directory.
      */
     public List<AdUserDto> listAll() {
         log.debug("Listing all AD users");
@@ -41,7 +38,7 @@ public class AdUserService {
     }
 
     /**
-     * Get a single user by sAMAccountName.
+     * SEARCH - Get a single user by sAMAccountName.
      */
     public Optional<AdUserDto> getBySamAccountName(String samAccountName) {
         log.debug("Looking up AD user: {}", samAccountName);
@@ -50,7 +47,7 @@ public class AdUserService {
     }
 
     /**
-     * Search users by keyword across displayName, mail, sAMAccountName, department, title.
+     * SEARCH - Search users by keyword across displayName, mail, sAMAccountName, department, title.
      */
     public List<AdUserDto> search(String keyword) {
         log.debug("Searching AD users with keyword: {}", keyword);
@@ -61,7 +58,7 @@ public class AdUserService {
     }
 
     /**
-     * Search users by department.
+     * SEARCH - Filter users by department.
      */
     public List<AdUserDto> getByDepartment(String department) {
         log.debug("Searching AD users by department: {}", department);
@@ -72,7 +69,7 @@ public class AdUserService {
     }
 
     /**
-     * Insert (create) a new user in Active Directory.
+     * INSERT - Create a new user in Active Directory.
      */
     public AdUserDto create(AdUserDto dto) {
         log.info("Creating AD user: {}", dto.getSamAccountName());
@@ -92,7 +89,7 @@ public class AdUserService {
     }
 
     /**
-     * Update an existing user's attributes in Active Directory.
+     * UPDATE - Update an existing user's attributes in Active Directory.
      */
     public AdUserDto update(String samAccountName, AdUserDto dto) {
         log.info("Updating AD user: {}", samAccountName);
@@ -106,7 +103,7 @@ public class AdUserService {
     }
 
     /**
-     * Delete a user from Active Directory by sAMAccountName.
+     * DELETE - Remove a user from Active Directory.
      */
     public void delete(String samAccountName) {
         log.info("Deleting AD user: {}", samAccountName);
@@ -152,7 +149,6 @@ public class AdUserService {
             dto.setMemberOf(Collections.emptyList());
         }
 
-        // Parse userAccountControl to determine if account is enabled
         if (user.getUserAccountControl() != null) {
             try {
                 int uac = Integer.parseInt(user.getUserAccountControl());

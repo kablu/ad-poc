@@ -1,4 +1,4 @@
-package com.ad.poc.config;
+package ad.poc.config;
 
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;

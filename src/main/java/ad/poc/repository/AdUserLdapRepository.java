@@ -1,6 +1,6 @@
-package com.ad.poc.repository;
+package ad.poc.repository;
 
-import com.ad.poc.model.AdUser;
+import ad.poc.model.AdUser;
 import org.springframework.ldap.core.AttributesMapper;
 import org.springframework.ldap.core.DirContextAdapter;
 import org.springframework.ldap.core.DirContextOperations;
@@ -17,10 +17,6 @@ import org.springframework.stereotype.Repository;
 import javax.naming.Name;
 import javax.naming.NamingException;
 import javax.naming.directory.Attributes;
-import javax.naming.directory.BasicAttribute;
-import javax.naming.directory.BasicAttributes;
-import javax.naming.directory.DirContext;
-import javax.naming.directory.ModificationItem;
 import java.util.List;
 
 @Repository
@@ -41,7 +37,7 @@ public class AdUserLdapRepository {
     }
 
     /**
-     * List all AD users in the Users OU.
+     * LIST - Get all AD users in the Users OU.
      */
     public List<AdUser> findAll() {
         LdapQuery query = LdapQueryBuilder.query()
@@ -54,7 +50,7 @@ public class AdUserLdapRepository {
     }
 
     /**
-     * Find a single user by sAMAccountName.
+     * SEARCH - Find a single user by sAMAccountName.
      */
     public AdUser findBySamAccountName(String samAccountName) {
         LdapQuery query = LdapQueryBuilder.query()
@@ -68,7 +64,7 @@ public class AdUserLdapRepository {
     }
 
     /**
-     * Search users by department.
+     * SEARCH - Find users by department.
      */
     public List<AdUser> findByDepartment(String department) {
         LdapQuery query = LdapQueryBuilder.query()
@@ -81,7 +77,7 @@ public class AdUserLdapRepository {
     }
 
     /**
-     * Search users by a keyword across common fields (displayName, mail, department, title).
+     * SEARCH - Search users by keyword across displayName, mail, sAMAccountName, department, title.
      */
     public List<AdUser> search(String keyword) {
         AndFilter andFilter = new AndFilter();
@@ -104,7 +100,7 @@ public class AdUserLdapRepository {
     }
 
     /**
-     * Find users by email address.
+     * SEARCH - Find users by email address.
      */
     public AdUser findByEmail(String email) {
         LdapQuery query = LdapQueryBuilder.query()
@@ -118,7 +114,7 @@ public class AdUserLdapRepository {
     }
 
     /**
-     * Insert (create) a new user in Active Directory.
+     * INSERT - Create a new user in Active Directory.
      */
     public void create(AdUser user) {
         Name dn = buildDn(user.getCommonName());
@@ -129,39 +125,21 @@ public class AdUserLdapRepository {
         context.setAttributeValue("cn", user.getCommonName());
         context.setAttributeValue("sAMAccountName", user.getSamAccountName());
 
-        if (user.getDisplayName() != null) {
-            context.setAttributeValue("displayName", user.getDisplayName());
-        }
-        if (user.getFirstName() != null) {
-            context.setAttributeValue("givenName", user.getFirstName());
-        }
-        if (user.getLastName() != null) {
-            context.setAttributeValue("sn", user.getLastName());
-        }
-        if (user.getEmail() != null) {
-            context.setAttributeValue("mail", user.getEmail());
-        }
-        if (user.getDepartment() != null) {
-            context.setAttributeValue("department", user.getDepartment());
-        }
-        if (user.getTitle() != null) {
-            context.setAttributeValue("title", user.getTitle());
-        }
-        if (user.getPhoneNumber() != null) {
-            context.setAttributeValue("telephoneNumber", user.getPhoneNumber());
-        }
-        if (user.getCompany() != null) {
-            context.setAttributeValue("company", user.getCompany());
-        }
-        if (user.getUserPrincipalName() != null) {
-            context.setAttributeValue("userPrincipalName", user.getUserPrincipalName());
-        }
+        setAttributeIfNotNull(context, "displayName", user.getDisplayName());
+        setAttributeIfNotNull(context, "givenName", user.getFirstName());
+        setAttributeIfNotNull(context, "sn", user.getLastName());
+        setAttributeIfNotNull(context, "mail", user.getEmail());
+        setAttributeIfNotNull(context, "department", user.getDepartment());
+        setAttributeIfNotNull(context, "title", user.getTitle());
+        setAttributeIfNotNull(context, "telephoneNumber", user.getPhoneNumber());
+        setAttributeIfNotNull(context, "company", user.getCompany());
+        setAttributeIfNotNull(context, "userPrincipalName", user.getUserPrincipalName());
 
         ldapTemplate.bind(context);
     }
 
     /**
-     * Update an existing user's attributes in Active Directory.
+     * UPDATE - Modify an existing user's attributes in Active Directory.
      */
     public void update(String samAccountName, AdUser updatedUser) {
         AdUser existing = findBySamAccountName(samAccountName);
@@ -186,7 +164,7 @@ public class AdUserLdapRepository {
     }
 
     /**
-     * Delete a user from Active Directory by sAMAccountName.
+     * DELETE - Remove a user from Active Directory by sAMAccountName.
      */
     public void delete(String samAccountName) {
         AdUser existing = findBySamAccountName(samAccountName);
