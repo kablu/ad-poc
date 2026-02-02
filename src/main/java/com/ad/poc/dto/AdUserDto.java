@@ -4,48 +4,45 @@ import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 
+import java.util.List;
+
 public class AdUserDto {
 
-    private Long id;
-
     @NotBlank(message = "SAM account name is required")
-    @Size(max = 100, message = "SAM account name must not exceed 100 characters")
+    @Size(max = 20, message = "SAM account name must not exceed 20 characters")
     private String samAccountName;
 
-    @NotBlank(message = "Display name is required")
-    @Size(max = 255, message = "Display name must not exceed 255 characters")
+    @NotBlank(message = "First name is required")
+    @Size(max = 64, message = "First name must not exceed 64 characters")
+    private String firstName;
+
+    @NotBlank(message = "Last name is required")
+    @Size(max = 64, message = "Last name must not exceed 64 characters")
+    private String lastName;
+
+    @Size(max = 256, message = "Display name must not exceed 256 characters")
     private String displayName;
 
     @Email(message = "Email must be valid")
-    @Size(max = 255, message = "Email must not exceed 255 characters")
     private String email;
 
-    @Size(max = 255, message = "Distinguished name must not exceed 255 characters")
-    private String distinguishedName;
-
-    @Size(max = 100, message = "Department must not exceed 100 characters")
     private String department;
-
-    @Size(max = 100, message = "Title must not exceed 100 characters")
     private String title;
-
-    private boolean enabled = true;
+    private String phoneNumber;
+    private String company;
+    private String distinguishedName;
+    private String userPrincipalName;
+    private List<String> memberOf;
+    private boolean enabled;
 
     public AdUserDto() {
     }
 
-    public AdUserDto(String samAccountName, String displayName, String email) {
+    public AdUserDto(String samAccountName, String firstName, String lastName, String email) {
         this.samAccountName = samAccountName;
-        this.displayName = displayName;
+        this.firstName = firstName;
+        this.lastName = lastName;
         this.email = email;
-    }
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
     }
 
     public String getSamAccountName() {
@@ -54,6 +51,22 @@ public class AdUserDto {
 
     public void setSamAccountName(String samAccountName) {
         this.samAccountName = samAccountName;
+    }
+
+    public String getFirstName() {
+        return firstName;
+    }
+
+    public void setFirstName(String firstName) {
+        this.firstName = firstName;
+    }
+
+    public String getLastName() {
+        return lastName;
+    }
+
+    public void setLastName(String lastName) {
+        this.lastName = lastName;
     }
 
     public String getDisplayName() {
@@ -72,14 +85,6 @@ public class AdUserDto {
         this.email = email;
     }
 
-    public String getDistinguishedName() {
-        return distinguishedName;
-    }
-
-    public void setDistinguishedName(String distinguishedName) {
-        this.distinguishedName = distinguishedName;
-    }
-
     public String getDepartment() {
         return department;
     }
@@ -94,6 +99,46 @@ public class AdUserDto {
 
     public void setTitle(String title) {
         this.title = title;
+    }
+
+    public String getPhoneNumber() {
+        return phoneNumber;
+    }
+
+    public void setPhoneNumber(String phoneNumber) {
+        this.phoneNumber = phoneNumber;
+    }
+
+    public String getCompany() {
+        return company;
+    }
+
+    public void setCompany(String company) {
+        this.company = company;
+    }
+
+    public String getDistinguishedName() {
+        return distinguishedName;
+    }
+
+    public void setDistinguishedName(String distinguishedName) {
+        this.distinguishedName = distinguishedName;
+    }
+
+    public String getUserPrincipalName() {
+        return userPrincipalName;
+    }
+
+    public void setUserPrincipalName(String userPrincipalName) {
+        this.userPrincipalName = userPrincipalName;
+    }
+
+    public List<String> getMemberOf() {
+        return memberOf;
+    }
+
+    public void setMemberOf(List<String> memberOf) {
+        this.memberOf = memberOf;
     }
 
     public boolean isEnabled() {

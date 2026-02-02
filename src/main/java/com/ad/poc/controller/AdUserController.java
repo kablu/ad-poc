@@ -27,41 +27,66 @@ public class AdUserController {
         this.adUserService = adUserService;
     }
 
+    /**
+     * INSERT - Create a new user in Active Directory.
+     */
     @PostMapping
     public ResponseEntity<AdUserDto> create(@Valid @RequestBody AdUserDto dto) {
         AdUserDto created = adUserService.create(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    @GetMapping("/{id}")
-    public ResponseEntity<AdUserDto> getById(@PathVariable Long id) {
-        return adUserService.getById(id)
-                .map(ResponseEntity::ok)
-                .orElse(ResponseEntity.notFound().build());
-    }
-
+    /**
+     * LIST - Get all users from Active Directory.
+     * Optional filter by department.
+     */
     @GetMapping
-    public ResponseEntity<List<AdUserDto>> getAll(
+    public ResponseEntity<List<AdUserDto>> listAll(
             @RequestParam(required = false) String department) {
         List<AdUserDto> users;
         if (department != null && !department.isBlank()) {
             users = adUserService.getByDepartment(department);
         } else {
-            users = adUserService.getAll();
+            users = adUserService.listAll();
         }
         return ResponseEntity.ok(users);
     }
 
-    @PutMapping("/{id}")
-    public ResponseEntity<AdUserDto> update(@PathVariable Long id,
+    /**
+     * SEARCH - Search users by keyword across multiple AD fields.
+     */
+    @GetMapping("/search")
+    public ResponseEntity<List<AdUserDto>> search(@RequestParam String q) {
+        List<AdUserDto> results = adUserService.search(q);
+        return ResponseEntity.ok(results);
+    }
+
+    /**
+     * READ - Get a single user by sAMAccountName.
+     */
+    @GetMapping("/{samAccountName}")
+    public ResponseEntity<AdUserDto> getBySamAccountName(@PathVariable String samAccountName) {
+        return adUserService.getBySamAccountName(samAccountName)
+                .map(ResponseEntity::ok)
+                .orElse(ResponseEntity.notFound().build());
+    }
+
+    /**
+     * UPDATE - Update an existing user's attributes in Active Directory.
+     */
+    @PutMapping("/{samAccountName}")
+    public ResponseEntity<AdUserDto> update(@PathVariable String samAccountName,
                                             @Valid @RequestBody AdUserDto dto) {
-        AdUserDto updated = adUserService.update(id, dto);
+        AdUserDto updated = adUserService.update(samAccountName, dto);
         return ResponseEntity.ok(updated);
     }
 
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> delete(@PathVariable Long id) {
-        adUserService.delete(id);
+    /**
+     * DELETE - Remove a user from Active Directory.
+     */
+    @DeleteMapping("/{samAccountName}")
+    public ResponseEntity<Void> delete(@PathVariable String samAccountName) {
+        adUserService.delete(samAccountName);
         return ResponseEntity.noContent().build();
     }
 }

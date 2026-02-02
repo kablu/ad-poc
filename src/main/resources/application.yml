@@ -54,9 +54,17 @@ logging:
 ad:
   url: ldap://ad.company.com:389
   baseDn: DC=company,DC=com
+  userSearchBase: OU=Users,DC=company,DC=com
   serviceAccount:
     username: CN=RA Service Account,OU=Service Accounts,DC=company,DC=com
     password: change_this_password
+
+# Spring LDAP Configuration
+spring.ldap:
+  urls: ldap://ad.company.com:389
+  base: DC=company,DC=com
+  username: CN=RA Service Account,OU=Service Accounts,DC=company,DC=com
+  password: change_this_password
 
 # JWT Configuration
 jwt:

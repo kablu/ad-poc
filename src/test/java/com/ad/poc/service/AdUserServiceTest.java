@@ -1,8 +1,8 @@
 package com.ad.poc.service;
 
 import com.ad.poc.dto.AdUserDto;
-import com.ad.poc.entity.AdUser;
-import com.ad.poc.repository.AdUserRepository;
+import com.ad.poc.model.AdUser;
+import com.ad.poc.repository.AdUserLdapRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -11,113 +11,87 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyLong;
-import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class AdUserServiceTest {
 
     @Mock
-    private AdUserRepository adUserRepository;
+    private AdUserLdapRepository ldapRepository;
 
     @InjectMocks
     private AdUserService adUserService;
 
+    private AdUser sampleAdUser;
     private AdUserDto sampleDto;
-    private AdUser sampleEntity;
 
     @BeforeEach
     void setUp() {
-        sampleDto = new AdUserDto("jdoe", "John Doe", "jdoe@company.com");
+        sampleAdUser = new AdUser();
+        sampleAdUser.setSamAccountName("jdoe");
+        sampleAdUser.setCommonName("John Doe");
+        sampleAdUser.setDisplayName("John Doe");
+        sampleAdUser.setFirstName("John");
+        sampleAdUser.setLastName("Doe");
+        sampleAdUser.setEmail("jdoe@company.com");
+        sampleAdUser.setDepartment("Engineering");
+        sampleAdUser.setTitle("Developer");
+        sampleAdUser.setPhoneNumber("+1-555-0100");
+        sampleAdUser.setCompany("Company Inc");
+        sampleAdUser.setDistinguishedName("CN=John Doe,OU=Users,DC=company,DC=com");
+        sampleAdUser.setUserPrincipalName("jdoe@company.com");
+        sampleAdUser.setUserAccountControl("512"); // enabled
+        sampleAdUser.setMemberOf(new String[]{"CN=Developers,OU=Groups,DC=company,DC=com"});
+
+        sampleDto = new AdUserDto("jdoe", "John", "Doe", "jdoe@company.com");
+        sampleDto.setDisplayName("John Doe");
         sampleDto.setDepartment("Engineering");
         sampleDto.setTitle("Developer");
-        sampleDto.setDistinguishedName("CN=John Doe,OU=Users,DC=company,DC=com");
-
-        sampleEntity = new AdUser("jdoe", "John Doe", "jdoe@company.com");
-        sampleEntity.setId(1L);
-        sampleEntity.setDepartment("Engineering");
-        sampleEntity.setTitle("Developer");
-        sampleEntity.setDistinguishedName("CN=John Doe,OU=Users,DC=company,DC=com");
+        sampleDto.setPhoneNumber("+1-555-0100");
+        sampleDto.setCompany("Company Inc");
+        sampleDto.setUserPrincipalName("jdoe@company.com");
     }
 
-    @Test
-    void create_shouldSaveAndReturnDto() {
-        when(adUserRepository.existsBySamAccountName("jdoe")).thenReturn(false);
-        when(adUserRepository.save(any(AdUser.class))).thenReturn(sampleEntity);
-
-        AdUserDto result = adUserService.create(sampleDto);
-
-        assertNotNull(result);
-        assertEquals(1L, result.getId());
-        assertEquals("jdoe", result.getSamAccountName());
-        assertEquals("John Doe", result.getDisplayName());
-        assertEquals("jdoe@company.com", result.getEmail());
-        assertEquals("Engineering", result.getDepartment());
-        verify(adUserRepository).save(any(AdUser.class));
-    }
+    // ---- LIST ----
 
     @Test
-    void create_shouldThrowWhenDuplicateSamAccountName() {
-        when(adUserRepository.existsBySamAccountName("jdoe")).thenReturn(true);
+    void listAll_shouldReturnAllUsers() {
+        AdUser secondUser = new AdUser();
+        secondUser.setSamAccountName("asmith");
+        secondUser.setFirstName("Alice");
+        secondUser.setLastName("Smith");
+        secondUser.setDisplayName("Alice Smith");
 
-        IllegalArgumentException ex = assertThrows(IllegalArgumentException.class,
-                () -> adUserService.create(sampleDto));
-        assertTrue(ex.getMessage().contains("already exists"));
-        verify(adUserRepository, never()).save(any());
-    }
+        when(ldapRepository.findAll()).thenReturn(Arrays.asList(sampleAdUser, secondUser));
 
-    @Test
-    void getById_shouldReturnDtoWhenFound() {
-        when(adUserRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
-
-        Optional<AdUserDto> result = adUserService.getById(1L);
-
-        assertTrue(result.isPresent());
-        assertEquals("jdoe", result.get().getSamAccountName());
-    }
-
-    @Test
-    void getById_shouldReturnEmptyWhenNotFound() {
-        when(adUserRepository.findById(99L)).thenReturn(Optional.empty());
-
-        Optional<AdUserDto> result = adUserService.getById(99L);
-
-        assertFalse(result.isPresent());
-    }
-
-    @Test
-    void getBySamAccountName_shouldReturnDtoWhenFound() {
-        when(adUserRepository.findBySamAccountName("jdoe")).thenReturn(Optional.of(sampleEntity));
-
-        Optional<AdUserDto> result = adUserService.getBySamAccountName("jdoe");
-
-        assertTrue(result.isPresent());
-        assertEquals("John Doe", result.get().getDisplayName());
-    }
-
-    @Test
-    void getAll_shouldReturnAllUsers() {
-        AdUser second = new AdUser("asmith", "Alice Smith", "asmith@company.com");
-        second.setId(2L);
-        when(adUserRepository.findAll()).thenReturn(Arrays.asList(sampleEntity, second));
-
-        List<AdUserDto> result = adUserService.getAll();
+        List<AdUserDto> result = adUserService.listAll();
 
         assertEquals(2, result.size());
         assertEquals("jdoe", result.get(0).getSamAccountName());
         assertEquals("asmith", result.get(1).getSamAccountName());
+        verify(ldapRepository).findAll();
+    }
+
+    @Test
+    void listAll_shouldReturnEmptyListWhenNoUsers() {
+        when(ldapRepository.findAll()).thenReturn(Collections.emptyList());
+
+        List<AdUserDto> result = adUserService.listAll();
+
+        assertTrue(result.isEmpty());
     }
 
     @Test
     void getByDepartment_shouldReturnFilteredUsers() {
-        when(adUserRepository.findByDepartment("Engineering"))
-                .thenReturn(List.of(sampleEntity));
+        when(ldapRepository.findByDepartment("Engineering"))
+                .thenReturn(List.of(sampleAdUser));
 
         List<AdUserDto> result = adUserService.getByDepartment("Engineering");
 
@@ -125,45 +99,209 @@ class AdUserServiceTest {
         assertEquals("Engineering", result.get(0).getDepartment());
     }
 
+    // ---- SEARCH ----
+
     @Test
-    void update_shouldModifyAndReturnDto() {
-        when(adUserRepository.findById(1L)).thenReturn(Optional.of(sampleEntity));
-        when(adUserRepository.save(any(AdUser.class))).thenReturn(sampleEntity);
+    void search_shouldReturnMatchingUsers() {
+        when(ldapRepository.search("john")).thenReturn(List.of(sampleAdUser));
 
-        AdUserDto updateDto = new AdUserDto("jdoe", "John Updated", "jdoe-new@company.com");
-        updateDto.setDepartment("Management");
-        updateDto.setTitle("Manager");
+        List<AdUserDto> result = adUserService.search("john");
 
-        AdUserDto result = adUserService.update(1L, updateDto);
+        assertEquals(1, result.size());
+        assertEquals("jdoe", result.get(0).getSamAccountName());
+        verify(ldapRepository).search("john");
+    }
+
+    @Test
+    void search_shouldReturnEmptyWhenNoMatch() {
+        when(ldapRepository.search("nonexistent")).thenReturn(Collections.emptyList());
+
+        List<AdUserDto> result = adUserService.search("nonexistent");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void getBySamAccountName_shouldReturnUserWhenFound() {
+        when(ldapRepository.findBySamAccountName("jdoe")).thenReturn(sampleAdUser);
+
+        Optional<AdUserDto> result = adUserService.getBySamAccountName("jdoe");
+
+        assertTrue(result.isPresent());
+        assertEquals("jdoe", result.get().getSamAccountName());
+        assertEquals("John Doe", result.get().getDisplayName());
+        assertEquals("jdoe@company.com", result.get().getEmail());
+    }
+
+    @Test
+    void getBySamAccountName_shouldReturnEmptyWhenNotFound() {
+        when(ldapRepository.findBySamAccountName("nonexistent")).thenReturn(null);
+
+        Optional<AdUserDto> result = adUserService.getBySamAccountName("nonexistent");
+
+        assertTrue(result.isEmpty());
+    }
+
+    // ---- INSERT (CREATE) ----
+
+    @Test
+    void create_shouldInsertNewUserInAd() {
+        when(ldapRepository.findBySamAccountName("jdoe"))
+                .thenReturn(null)       // first call: check existence
+                .thenReturn(sampleAdUser); // second call: fetch after create
+
+        doNothing().when(ldapRepository).create(any(AdUser.class));
+
+        AdUserDto result = adUserService.create(sampleDto);
 
         assertNotNull(result);
-        verify(adUserRepository).save(any(AdUser.class));
+        assertEquals("jdoe", result.getSamAccountName());
+        assertEquals("John Doe", result.getDisplayName());
+        verify(ldapRepository).create(any(AdUser.class));
     }
 
     @Test
-    void update_shouldThrowWhenNotFound() {
-        when(adUserRepository.findById(99L)).thenReturn(Optional.empty());
+    void create_shouldThrowWhenUserAlreadyExists() {
+        when(ldapRepository.findBySamAccountName("jdoe")).thenReturn(sampleAdUser);
+
+        IllegalArgumentException ex = assertThrows(
+                IllegalArgumentException.class,
+                () -> adUserService.create(sampleDto)
+        );
+
+        assertTrue(ex.getMessage().contains("already exists"));
+        verify(ldapRepository, never()).create(any());
+    }
+
+    @Test
+    void create_shouldSetDisplayNameFromFirstAndLastWhenNull() {
+        sampleDto.setDisplayName(null);
+
+        when(ldapRepository.findBySamAccountName("jdoe"))
+                .thenReturn(null)
+                .thenReturn(sampleAdUser);
+        doNothing().when(ldapRepository).create(any(AdUser.class));
+
+        adUserService.create(sampleDto);
+
+        verify(ldapRepository).create(argThat(user ->
+                "John Doe".equals(user.getDisplayName())
+        ));
+    }
+
+    // ---- UPDATE ----
+
+    @Test
+    void update_shouldModifyUserAttributes() {
+        AdUser updatedAdUser = new AdUser();
+        updatedAdUser.setSamAccountName("jdoe");
+        updatedAdUser.setDisplayName("John Updated");
+        updatedAdUser.setFirstName("John");
+        updatedAdUser.setLastName("Doe");
+        updatedAdUser.setEmail("jdoe-new@company.com");
+        updatedAdUser.setDepartment("Management");
+
+        doNothing().when(ldapRepository).update(eq("jdoe"), any(AdUser.class));
+        when(ldapRepository.findBySamAccountName("jdoe")).thenReturn(updatedAdUser);
+
+        AdUserDto updateDto = new AdUserDto("jdoe", "John", "Doe", "jdoe-new@company.com");
+        updateDto.setDisplayName("John Updated");
+        updateDto.setDepartment("Management");
+
+        AdUserDto result = adUserService.update("jdoe", updateDto);
+
+        assertEquals("John Updated", result.getDisplayName());
+        assertEquals("Management", result.getDepartment());
+        verify(ldapRepository).update(eq("jdoe"), any(AdUser.class));
+    }
+
+    @Test
+    void update_shouldPropagateExceptionWhenUserNotFound() {
+        doThrow(new IllegalArgumentException("User not found: unknown"))
+                .when(ldapRepository).update(eq("unknown"), any(AdUser.class));
+
+        AdUserDto updateDto = new AdUserDto("unknown", "X", "Y", "x@y.com");
 
         assertThrows(IllegalArgumentException.class,
-                () -> adUserService.update(99L, sampleDto));
+                () -> adUserService.update("unknown", updateDto));
+    }
+
+    // ---- DELETE ----
+
+    @Test
+    void delete_shouldRemoveUserFromAd() {
+        doNothing().when(ldapRepository).delete("jdoe");
+
+        adUserService.delete("jdoe");
+
+        verify(ldapRepository).delete("jdoe");
     }
 
     @Test
-    void delete_shouldRemoveUser() {
-        when(adUserRepository.existsById(1L)).thenReturn(true);
-        doNothing().when(adUserRepository).deleteById(1L);
-
-        adUserService.delete(1L);
-
-        verify(adUserRepository).deleteById(1L);
-    }
-
-    @Test
-    void delete_shouldThrowWhenNotFound() {
-        when(adUserRepository.existsById(99L)).thenReturn(false);
+    void delete_shouldPropagateExceptionWhenUserNotFound() {
+        doThrow(new IllegalArgumentException("User not found: unknown"))
+                .when(ldapRepository).delete("unknown");
 
         assertThrows(IllegalArgumentException.class,
-                () -> adUserService.delete(99L));
-        verify(adUserRepository, never()).deleteById(anyLong());
+                () -> adUserService.delete("unknown"));
+    }
+
+    // ---- DTO MAPPING ----
+
+    @Test
+    void toDto_shouldMapUserAccountControlEnabled() {
+        sampleAdUser.setUserAccountControl("512"); // normal enabled
+        when(ldapRepository.findBySamAccountName("jdoe")).thenReturn(sampleAdUser);
+
+        Optional<AdUserDto> result = adUserService.getBySamAccountName("jdoe");
+
+        assertTrue(result.isPresent());
+        assertTrue(result.get().isEnabled());
+    }
+
+    @Test
+    void toDto_shouldMapUserAccountControlDisabled() {
+        sampleAdUser.setUserAccountControl("514"); // disabled (512 + 2)
+        when(ldapRepository.findBySamAccountName("jdoe")).thenReturn(sampleAdUser);
+
+        Optional<AdUserDto> result = adUserService.getBySamAccountName("jdoe");
+
+        assertTrue(result.isPresent());
+        assertFalse(result.get().isEnabled());
+    }
+
+    @Test
+    void toDto_shouldMapMemberOfGroups() {
+        when(ldapRepository.findBySamAccountName("jdoe")).thenReturn(sampleAdUser);
+
+        Optional<AdUserDto> result = adUserService.getBySamAccountName("jdoe");
+
+        assertTrue(result.isPresent());
+        assertNotNull(result.get().getMemberOf());
+        assertEquals(1, result.get().getMemberOf().size());
+        assertTrue(result.get().getMemberOf().get(0).contains("Developers"));
+    }
+
+    @Test
+    void toDto_shouldHandleNullMemberOf() {
+        sampleAdUser.setMemberOf(null);
+        when(ldapRepository.findBySamAccountName("jdoe")).thenReturn(sampleAdUser);
+
+        Optional<AdUserDto> result = adUserService.getBySamAccountName("jdoe");
+
+        assertTrue(result.isPresent());
+        assertNotNull(result.get().getMemberOf());
+        assertTrue(result.get().getMemberOf().isEmpty());
+    }
+
+    @Test
+    void toDto_shouldHandleNullUserAccountControl() {
+        sampleAdUser.setUserAccountControl(null);
+        when(ldapRepository.findBySamAccountName("jdoe")).thenReturn(sampleAdUser);
+
+        Optional<AdUserDto> result = adUserService.getBySamAccountName("jdoe");
+
+        assertTrue(result.isPresent());
+        assertTrue(result.get().isEnabled()); // default to enabled
     }
 }

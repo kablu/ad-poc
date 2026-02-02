@@ -13,6 +13,7 @@ import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -40,31 +41,39 @@ class AdUserControllerTest {
 
     @BeforeEach
     void setUp() {
-        sampleDto = new AdUserDto("jdoe", "John Doe", "jdoe@company.com");
-        sampleDto.setId(1L);
+        sampleDto = new AdUserDto("jdoe", "John", "Doe", "jdoe@company.com");
+        sampleDto.setDisplayName("John Doe");
         sampleDto.setDepartment("Engineering");
         sampleDto.setTitle("Developer");
+        sampleDto.setPhoneNumber("+1-555-0100");
+        sampleDto.setCompany("Company Inc");
+        sampleDto.setDistinguishedName("CN=John Doe,OU=Users,DC=company,DC=com");
+        sampleDto.setUserPrincipalName("jdoe@company.com");
+        sampleDto.setMemberOf(List.of("CN=Developers,OU=Groups,DC=company,DC=com"));
+        sampleDto.setEnabled(true);
     }
+
+    // ---- INSERT ----
 
     @Test
     void create_shouldReturn201WithCreatedUser() throws Exception {
         when(adUserService.create(any(AdUserDto.class))).thenReturn(sampleDto);
 
-        AdUserDto requestBody = new AdUserDto("jdoe", "John Doe", "jdoe@company.com");
+        AdUserDto requestBody = new AdUserDto("jdoe", "John", "Doe", "jdoe@company.com");
 
         mockMvc.perform(post("/api/v1/ad-users")
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(objectMapper.writeValueAsString(requestBody)))
                 .andExpect(status().isCreated())
-                .andExpect(jsonPath("$.id", is(1)))
                 .andExpect(jsonPath("$.samAccountName", is("jdoe")))
                 .andExpect(jsonPath("$.displayName", is("John Doe")))
-                .andExpect(jsonPath("$.email", is("jdoe@company.com")));
+                .andExpect(jsonPath("$.email", is("jdoe@company.com")))
+                .andExpect(jsonPath("$.department", is("Engineering")));
     }
 
     @Test
     void create_shouldReturn400WhenSamAccountNameBlank() throws Exception {
-        AdUserDto invalid = new AdUserDto("", "John Doe", "jdoe@company.com");
+        AdUserDto invalid = new AdUserDto("", "John", "Doe", "jdoe@company.com");
 
         mockMvc.perform(post("/api/v1/ad-users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -73,28 +82,22 @@ class AdUserControllerTest {
     }
 
     @Test
-    void getById_shouldReturn200WhenFound() throws Exception {
-        when(adUserService.getById(1L)).thenReturn(Optional.of(sampleDto));
+    void create_shouldReturn400WhenFirstNameBlank() throws Exception {
+        AdUserDto invalid = new AdUserDto("jdoe", "", "Doe", "jdoe@company.com");
 
-        mockMvc.perform(get("/api/v1/ad-users/1"))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.samAccountName", is("jdoe")))
-                .andExpect(jsonPath("$.displayName", is("John Doe")));
+        mockMvc.perform(post("/api/v1/ad-users")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(invalid)))
+                .andExpect(status().isBadRequest());
     }
 
-    @Test
-    void getById_shouldReturn404WhenNotFound() throws Exception {
-        when(adUserService.getById(99L)).thenReturn(Optional.empty());
-
-        mockMvc.perform(get("/api/v1/ad-users/99"))
-                .andExpect(status().isNotFound());
-    }
+    // ---- LIST ----
 
     @Test
-    void getAll_shouldReturnListOfUsers() throws Exception {
-        AdUserDto second = new AdUserDto("asmith", "Alice Smith", "asmith@company.com");
-        second.setId(2L);
-        when(adUserService.getAll()).thenReturn(Arrays.asList(sampleDto, second));
+    void listAll_shouldReturnAllUsers() throws Exception {
+        AdUserDto second = new AdUserDto("asmith", "Alice", "Smith", "asmith@company.com");
+        second.setDisplayName("Alice Smith");
+        when(adUserService.listAll()).thenReturn(Arrays.asList(sampleDto, second));
 
         mockMvc.perform(get("/api/v1/ad-users"))
                 .andExpect(status().isOk())
@@ -104,7 +107,7 @@ class AdUserControllerTest {
     }
 
     @Test
-    void getAll_withDepartmentFilter_shouldReturnFilteredList() throws Exception {
+    void listAll_withDepartmentFilter_shouldReturnFilteredList() throws Exception {
         when(adUserService.getByDepartment("Engineering")).thenReturn(List.of(sampleDto));
 
         mockMvc.perform(get("/api/v1/ad-users").param("department", "Engineering"))
@@ -114,25 +117,85 @@ class AdUserControllerTest {
     }
 
     @Test
-    void update_shouldReturn200WithUpdatedUser() throws Exception {
-        AdUserDto updatedDto = new AdUserDto("jdoe", "John Updated", "jdoe-new@company.com");
-        updatedDto.setId(1L);
-        when(adUserService.update(eq(1L), any(AdUserDto.class))).thenReturn(updatedDto);
+    void listAll_shouldReturnEmptyListWhenNoUsers() throws Exception {
+        when(adUserService.listAll()).thenReturn(Collections.emptyList());
 
-        mockMvc.perform(put("/api/v1/ad-users/1")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(updatedDto)))
+        mockMvc.perform(get("/api/v1/ad-users"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.displayName", is("John Updated")));
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    // ---- SEARCH ----
+
+    @Test
+    void search_shouldReturnMatchingUsers() throws Exception {
+        when(adUserService.search("john")).thenReturn(List.of(sampleDto));
+
+        mockMvc.perform(get("/api/v1/ad-users/search").param("q", "john"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(1)))
+                .andExpect(jsonPath("$[0].samAccountName", is("jdoe")));
     }
 
     @Test
-    void delete_shouldReturn204() throws Exception {
-        doNothing().when(adUserService).delete(1L);
+    void search_shouldReturnEmptyWhenNoMatch() throws Exception {
+        when(adUserService.search("xyz")).thenReturn(Collections.emptyList());
 
-        mockMvc.perform(delete("/api/v1/ad-users/1"))
+        mockMvc.perform(get("/api/v1/ad-users/search").param("q", "xyz"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$", hasSize(0)));
+    }
+
+    // ---- READ (GET BY SAM ACCOUNT NAME) ----
+
+    @Test
+    void getBySamAccountName_shouldReturn200WhenFound() throws Exception {
+        when(adUserService.getBySamAccountName("jdoe")).thenReturn(Optional.of(sampleDto));
+
+        mockMvc.perform(get("/api/v1/ad-users/jdoe"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.samAccountName", is("jdoe")))
+                .andExpect(jsonPath("$.displayName", is("John Doe")))
+                .andExpect(jsonPath("$.email", is("jdoe@company.com")))
+                .andExpect(jsonPath("$.enabled", is(true)))
+                .andExpect(jsonPath("$.memberOf", hasSize(1)));
+    }
+
+    @Test
+    void getBySamAccountName_shouldReturn404WhenNotFound() throws Exception {
+        when(adUserService.getBySamAccountName("nonexistent")).thenReturn(Optional.empty());
+
+        mockMvc.perform(get("/api/v1/ad-users/nonexistent"))
+                .andExpect(status().isNotFound());
+    }
+
+    // ---- UPDATE ----
+
+    @Test
+    void update_shouldReturn200WithUpdatedUser() throws Exception {
+        AdUserDto updatedDto = new AdUserDto("jdoe", "John", "Doe", "jdoe-new@company.com");
+        updatedDto.setDisplayName("John Updated");
+        updatedDto.setDepartment("Management");
+        when(adUserService.update(eq("jdoe"), any(AdUserDto.class))).thenReturn(updatedDto);
+
+        mockMvc.perform(put("/api/v1/ad-users/jdoe")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(updatedDto)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.displayName", is("John Updated")))
+                .andExpect(jsonPath("$.department", is("Management")))
+                .andExpect(jsonPath("$.email", is("jdoe-new@company.com")));
+    }
+
+    // ---- DELETE ----
+
+    @Test
+    void delete_shouldReturn204() throws Exception {
+        doNothing().when(adUserService).delete("jdoe");
+
+        mockMvc.perform(delete("/api/v1/ad-users/jdoe"))
                 .andExpect(status().isNoContent());
 
-        verify(adUserService).delete(1L);
+        verify(adUserService).delete("jdoe");
     }
 }
