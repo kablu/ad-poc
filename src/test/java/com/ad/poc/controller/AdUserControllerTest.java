@@ -6,8 +6,8 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
+import org.springframework.boot.webmvc.test.autoconfigure.WebMvcTest;
 import org.springframework.http.MediaType;
 import org.springframework.test.context.bean.override.mockito.MockitoBean;
 import org.springframework.test.web.servlet.MockMvc;
@@ -41,16 +41,12 @@ class AdUserControllerTest {
 
     @BeforeEach
     void setUp() {
-        sampleDto = new AdUserDto("jdoe", "John", "Doe", "jdoe@company.com");
-        sampleDto.setDisplayName("John Doe");
-        sampleDto.setDepartment("Engineering");
-        sampleDto.setTitle("Developer");
-        sampleDto.setPhoneNumber("+1-555-0100");
-        sampleDto.setCompany("Company Inc");
-        sampleDto.setDistinguishedName("CN=John Doe,OU=Users,DC=company,DC=com");
-        sampleDto.setUserPrincipalName("jdoe@company.com");
-        sampleDto.setMemberOf(List.of("CN=Developers,OU=Groups,DC=company,DC=com"));
-        sampleDto.setEnabled(true);
+        sampleDto = new AdUserDto(
+                "jdoe", "John", "Doe", "John Doe", "jdoe@company.com",
+                "Engineering", "Developer", "+1-555-0100", "Company Inc",
+                "CN=John Doe,OU=Users,DC=company,DC=com", "jdoe@company.com",
+                List.of("CN=Developers,OU=Groups,DC=company,DC=com"), true
+        );
     }
 
     // ---- INSERT ----
@@ -59,7 +55,10 @@ class AdUserControllerTest {
     void create_shouldReturn201WithCreatedUser() throws Exception {
         when(adUserService.create(any(AdUserDto.class))).thenReturn(sampleDto);
 
-        AdUserDto requestBody = new AdUserDto("jdoe", "John", "Doe", "jdoe@company.com");
+        AdUserDto requestBody = new AdUserDto(
+                "jdoe", "John", "Doe", null, "jdoe@company.com",
+                null, null, null, null, null, null, null, false
+        );
 
         mockMvc.perform(post("/api/v1/ad-users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -73,7 +72,10 @@ class AdUserControllerTest {
 
     @Test
     void create_shouldReturn400WhenSamAccountNameBlank() throws Exception {
-        AdUserDto invalid = new AdUserDto("", "John", "Doe", "jdoe@company.com");
+        AdUserDto invalid = new AdUserDto(
+                "", "John", "Doe", null, "jdoe@company.com",
+                null, null, null, null, null, null, null, false
+        );
 
         mockMvc.perform(post("/api/v1/ad-users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -83,7 +85,10 @@ class AdUserControllerTest {
 
     @Test
     void create_shouldReturn400WhenFirstNameBlank() throws Exception {
-        AdUserDto invalid = new AdUserDto("jdoe", "", "Doe", "jdoe@company.com");
+        AdUserDto invalid = new AdUserDto(
+                "jdoe", "", "Doe", null, "jdoe@company.com",
+                null, null, null, null, null, null, null, false
+        );
 
         mockMvc.perform(post("/api/v1/ad-users")
                         .contentType(MediaType.APPLICATION_JSON)
@@ -95,8 +100,10 @@ class AdUserControllerTest {
 
     @Test
     void listAll_shouldReturnAllUsers() throws Exception {
-        AdUserDto second = new AdUserDto("asmith", "Alice", "Smith", "asmith@company.com");
-        second.setDisplayName("Alice Smith");
+        AdUserDto second = new AdUserDto(
+                "asmith", "Alice", "Smith", "Alice Smith", "asmith@company.com",
+                null, null, null, null, null, null, null, false
+        );
         when(adUserService.listAll()).thenReturn(Arrays.asList(sampleDto, second));
 
         mockMvc.perform(get("/api/v1/ad-users"))
@@ -173,9 +180,10 @@ class AdUserControllerTest {
 
     @Test
     void update_shouldReturn200WithUpdatedUser() throws Exception {
-        AdUserDto updatedDto = new AdUserDto("jdoe", "John", "Doe", "jdoe-new@company.com");
-        updatedDto.setDisplayName("John Updated");
-        updatedDto.setDepartment("Management");
+        AdUserDto updatedDto = new AdUserDto(
+                "jdoe", "John", "Doe", "John Updated", "jdoe-new@company.com",
+                "Management", null, null, null, null, null, null, false
+        );
         when(adUserService.update(eq("jdoe"), any(AdUserDto.class))).thenReturn(updatedDto);
 
         mockMvc.perform(put("/api/v1/ad-users/jdoe")

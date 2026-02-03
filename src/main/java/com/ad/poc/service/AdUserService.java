@@ -75,19 +75,19 @@ public class AdUserService {
      * Insert (create) a new user in Active Directory.
      */
     public AdUserDto create(AdUserDto dto) {
-        log.info("Creating AD user: {}", dto.getSamAccountName());
+        log.info("Creating AD user: {}", dto.samAccountName());
 
-        AdUser existing = ldapRepository.findBySamAccountName(dto.getSamAccountName());
+        AdUser existing = ldapRepository.findBySamAccountName(dto.samAccountName());
         if (existing != null) {
             throw new IllegalArgumentException(
-                    "User with sAMAccountName '" + dto.getSamAccountName() + "' already exists in AD");
+                    "User with sAMAccountName '" + dto.samAccountName() + "' already exists in AD");
         }
 
         AdUser user = toModel(dto);
         ldapRepository.create(user);
 
-        log.info("AD user created successfully: {}", dto.getSamAccountName());
-        AdUser created = ldapRepository.findBySamAccountName(dto.getSamAccountName());
+        log.info("AD user created successfully: {}", dto.samAccountName());
+        AdUser created = ldapRepository.findBySamAccountName(dto.samAccountName());
         return toDto(created);
     }
 
@@ -116,54 +116,51 @@ public class AdUserService {
 
     private AdUser toModel(AdUserDto dto) {
         AdUser user = new AdUser();
-        user.setSamAccountName(dto.getSamAccountName());
-        user.setCommonName(dto.getFirstName() + " " + dto.getLastName());
-        user.setDisplayName(dto.getDisplayName() != null
-                ? dto.getDisplayName()
-                : dto.getFirstName() + " " + dto.getLastName());
-        user.setFirstName(dto.getFirstName());
-        user.setLastName(dto.getLastName());
-        user.setEmail(dto.getEmail());
-        user.setDepartment(dto.getDepartment());
-        user.setTitle(dto.getTitle());
-        user.setPhoneNumber(dto.getPhoneNumber());
-        user.setCompany(dto.getCompany());
-        user.setUserPrincipalName(dto.getUserPrincipalName());
+        user.setSamAccountName(dto.samAccountName());
+        user.setCommonName(dto.firstName() + " " + dto.lastName());
+        user.setDisplayName(dto.displayName() != null
+                ? dto.displayName()
+                : dto.firstName() + " " + dto.lastName());
+        user.setFirstName(dto.firstName());
+        user.setLastName(dto.lastName());
+        user.setEmail(dto.email());
+        user.setDepartment(dto.department());
+        user.setTitle(dto.title());
+        user.setPhoneNumber(dto.phoneNumber());
+        user.setCompany(dto.company());
+        user.setUserPrincipalName(dto.userPrincipalName());
         return user;
     }
 
     private AdUserDto toDto(AdUser user) {
-        AdUserDto dto = new AdUserDto();
-        dto.setSamAccountName(user.getSamAccountName());
-        dto.setFirstName(user.getFirstName());
-        dto.setLastName(user.getLastName());
-        dto.setDisplayName(user.getDisplayName());
-        dto.setEmail(user.getEmail());
-        dto.setDepartment(user.getDepartment());
-        dto.setTitle(user.getTitle());
-        dto.setPhoneNumber(user.getPhoneNumber());
-        dto.setCompany(user.getCompany());
-        dto.setDistinguishedName(user.getDistinguishedName());
-        dto.setUserPrincipalName(user.getUserPrincipalName());
+        List<String> memberOfList = user.getMemberOf() != null
+                ? Arrays.asList(user.getMemberOf())
+                : Collections.emptyList();
 
-        if (user.getMemberOf() != null) {
-            dto.setMemberOf(Arrays.asList(user.getMemberOf()));
-        } else {
-            dto.setMemberOf(Collections.emptyList());
-        }
-
-        // Parse userAccountControl to determine if account is enabled
+        boolean enabled = true;
         if (user.getUserAccountControl() != null) {
             try {
                 int uac = Integer.parseInt(user.getUserAccountControl());
-                dto.setEnabled((uac & UF_ACCOUNT_DISABLE) == 0);
+                enabled = (uac & UF_ACCOUNT_DISABLE) == 0;
             } catch (NumberFormatException e) {
-                dto.setEnabled(true);
+                // default to enabled
             }
-        } else {
-            dto.setEnabled(true);
         }
 
-        return dto;
+        return new AdUserDto(
+                user.getSamAccountName(),
+                user.getFirstName(),
+                user.getLastName(),
+                user.getDisplayName(),
+                user.getEmail(),
+                user.getDepartment(),
+                user.getTitle(),
+                user.getPhoneNumber(),
+                user.getCompany(),
+                user.getDistinguishedName(),
+                user.getUserPrincipalName(),
+                memberOfList,
+                enabled
+        );
     }
 }

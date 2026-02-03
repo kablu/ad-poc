@@ -50,13 +50,11 @@ class AdUserServiceTest {
         sampleAdUser.setUserAccountControl("512"); // enabled
         sampleAdUser.setMemberOf(new String[]{"CN=Developers,OU=Groups,DC=company,DC=com"});
 
-        sampleDto = new AdUserDto("jdoe", "John", "Doe", "jdoe@company.com");
-        sampleDto.setDisplayName("John Doe");
-        sampleDto.setDepartment("Engineering");
-        sampleDto.setTitle("Developer");
-        sampleDto.setPhoneNumber("+1-555-0100");
-        sampleDto.setCompany("Company Inc");
-        sampleDto.setUserPrincipalName("jdoe@company.com");
+        sampleDto = new AdUserDto(
+                "jdoe", "John", "Doe", "John Doe", "jdoe@company.com",
+                "Engineering", "Developer", "+1-555-0100", "Company Inc",
+                null, "jdoe@company.com", null, false
+        );
     }
 
     // ---- LIST ----
@@ -74,8 +72,8 @@ class AdUserServiceTest {
         List<AdUserDto> result = adUserService.listAll();
 
         assertEquals(2, result.size());
-        assertEquals("jdoe", result.get(0).getSamAccountName());
-        assertEquals("asmith", result.get(1).getSamAccountName());
+        assertEquals("jdoe", result.get(0).samAccountName());
+        assertEquals("asmith", result.get(1).samAccountName());
         verify(ldapRepository).findAll();
     }
 
@@ -96,7 +94,7 @@ class AdUserServiceTest {
         List<AdUserDto> result = adUserService.getByDepartment("Engineering");
 
         assertEquals(1, result.size());
-        assertEquals("Engineering", result.get(0).getDepartment());
+        assertEquals("Engineering", result.get(0).department());
     }
 
     // ---- SEARCH ----
@@ -108,7 +106,7 @@ class AdUserServiceTest {
         List<AdUserDto> result = adUserService.search("john");
 
         assertEquals(1, result.size());
-        assertEquals("jdoe", result.get(0).getSamAccountName());
+        assertEquals("jdoe", result.get(0).samAccountName());
         verify(ldapRepository).search("john");
     }
 
@@ -128,9 +126,9 @@ class AdUserServiceTest {
         Optional<AdUserDto> result = adUserService.getBySamAccountName("jdoe");
 
         assertTrue(result.isPresent());
-        assertEquals("jdoe", result.get().getSamAccountName());
-        assertEquals("John Doe", result.get().getDisplayName());
-        assertEquals("jdoe@company.com", result.get().getEmail());
+        assertEquals("jdoe", result.get().samAccountName());
+        assertEquals("John Doe", result.get().displayName());
+        assertEquals("jdoe@company.com", result.get().email());
     }
 
     @Test
@@ -155,8 +153,8 @@ class AdUserServiceTest {
         AdUserDto result = adUserService.create(sampleDto);
 
         assertNotNull(result);
-        assertEquals("jdoe", result.getSamAccountName());
-        assertEquals("John Doe", result.getDisplayName());
+        assertEquals("jdoe", result.samAccountName());
+        assertEquals("John Doe", result.displayName());
         verify(ldapRepository).create(any(AdUser.class));
     }
 
@@ -175,14 +173,18 @@ class AdUserServiceTest {
 
     @Test
     void create_shouldSetDisplayNameFromFirstAndLastWhenNull() {
-        sampleDto.setDisplayName(null);
+        AdUserDto dtoWithNullDisplay = new AdUserDto(
+                "jdoe", "John", "Doe", null, "jdoe@company.com",
+                "Engineering", "Developer", "+1-555-0100", "Company Inc",
+                null, "jdoe@company.com", null, false
+        );
 
         when(ldapRepository.findBySamAccountName("jdoe"))
                 .thenReturn(null)
                 .thenReturn(sampleAdUser);
         doNothing().when(ldapRepository).create(any(AdUser.class));
 
-        adUserService.create(sampleDto);
+        adUserService.create(dtoWithNullDisplay);
 
         verify(ldapRepository).create(argThat(user ->
                 "John Doe".equals(user.getDisplayName())
@@ -204,14 +206,15 @@ class AdUserServiceTest {
         doNothing().when(ldapRepository).update(eq("jdoe"), any(AdUser.class));
         when(ldapRepository.findBySamAccountName("jdoe")).thenReturn(updatedAdUser);
 
-        AdUserDto updateDto = new AdUserDto("jdoe", "John", "Doe", "jdoe-new@company.com");
-        updateDto.setDisplayName("John Updated");
-        updateDto.setDepartment("Management");
+        AdUserDto updateDto = new AdUserDto(
+                "jdoe", "John", "Doe", "John Updated", "jdoe-new@company.com",
+                "Management", null, null, null, null, null, null, false
+        );
 
         AdUserDto result = adUserService.update("jdoe", updateDto);
 
-        assertEquals("John Updated", result.getDisplayName());
-        assertEquals("Management", result.getDepartment());
+        assertEquals("John Updated", result.displayName());
+        assertEquals("Management", result.department());
         verify(ldapRepository).update(eq("jdoe"), any(AdUser.class));
     }
 
@@ -220,7 +223,10 @@ class AdUserServiceTest {
         doThrow(new IllegalArgumentException("User not found: unknown"))
                 .when(ldapRepository).update(eq("unknown"), any(AdUser.class));
 
-        AdUserDto updateDto = new AdUserDto("unknown", "X", "Y", "x@y.com");
+        AdUserDto updateDto = new AdUserDto(
+                "unknown", "X", "Y", null, "x@y.com",
+                null, null, null, null, null, null, null, false
+        );
 
         assertThrows(IllegalArgumentException.class,
                 () -> adUserService.update("unknown", updateDto));
@@ -256,7 +262,7 @@ class AdUserServiceTest {
         Optional<AdUserDto> result = adUserService.getBySamAccountName("jdoe");
 
         assertTrue(result.isPresent());
-        assertTrue(result.get().isEnabled());
+        assertTrue(result.get().enabled());
     }
 
     @Test
@@ -267,7 +273,7 @@ class AdUserServiceTest {
         Optional<AdUserDto> result = adUserService.getBySamAccountName("jdoe");
 
         assertTrue(result.isPresent());
-        assertFalse(result.get().isEnabled());
+        assertFalse(result.get().enabled());
     }
 
     @Test
@@ -277,9 +283,9 @@ class AdUserServiceTest {
         Optional<AdUserDto> result = adUserService.getBySamAccountName("jdoe");
 
         assertTrue(result.isPresent());
-        assertNotNull(result.get().getMemberOf());
-        assertEquals(1, result.get().getMemberOf().size());
-        assertTrue(result.get().getMemberOf().get(0).contains("Developers"));
+        assertNotNull(result.get().memberOf());
+        assertEquals(1, result.get().memberOf().size());
+        assertTrue(result.get().memberOf().get(0).contains("Developers"));
     }
 
     @Test
@@ -290,8 +296,8 @@ class AdUserServiceTest {
         Optional<AdUserDto> result = adUserService.getBySamAccountName("jdoe");
 
         assertTrue(result.isPresent());
-        assertNotNull(result.get().getMemberOf());
-        assertTrue(result.get().getMemberOf().isEmpty());
+        assertNotNull(result.get().memberOf());
+        assertTrue(result.get().memberOf().isEmpty());
     }
 
     @Test
@@ -302,6 +308,6 @@ class AdUserServiceTest {
         Optional<AdUserDto> result = adUserService.getBySamAccountName("jdoe");
 
         assertTrue(result.isPresent());
-        assertTrue(result.get().isEnabled()); // default to enabled
+        assertTrue(result.get().enabled()); // default to enabled
     }
 }
