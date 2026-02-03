@@ -57,6 +57,9 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/login").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/v1/auth/verify").permitAll()
 
+                // AD user login endpoint
+                .requestMatchers(HttpMethod.POST, "/api/v1/ad-users/login").permitAll()
+
                 // Health check endpoint
                 .requestMatchers(HttpMethod.GET, "/actuator/health").permitAll()
 

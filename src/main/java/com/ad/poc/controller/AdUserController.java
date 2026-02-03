@@ -1,6 +1,8 @@
 package com.ad.poc.controller;
 
 import com.ad.poc.dto.AdUserDto;
+import com.ad.poc.dto.LoginRequest;
+import com.ad.poc.dto.LoginResponse;
 import com.ad.poc.service.AdUserService;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
@@ -25,6 +27,18 @@ public class AdUserController {
 
     public AdUserController(AdUserService adUserService) {
         this.adUserService = adUserService;
+    }
+
+    /**
+     * LOGIN - Authenticate a user against Active Directory using username and password.
+     */
+    @PostMapping("/login")
+    public ResponseEntity<LoginResponse> login(@Valid @RequestBody LoginRequest request) {
+        return adUserService.authenticate(request.username(), request.password())
+                .map(user -> ResponseEntity.ok(
+                        new LoginResponse(true, "Login successful", user)))
+                .orElse(ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(
+                        new LoginResponse(false, "Invalid credentials", null)));
     }
 
     /**

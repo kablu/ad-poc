@@ -6,7 +6,6 @@ import com.ad.poc.repository.AdUserLdapRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -26,7 +25,6 @@ class AdUserServiceTest {
     @Mock
     private AdUserLdapRepository ldapRepository;
 
-    @InjectMocks
     private AdUserService adUserService;
 
     private AdUser sampleAdUser;
@@ -34,6 +32,8 @@ class AdUserServiceTest {
 
     @BeforeEach
     void setUp() {
+        adUserService = new AdUserService(ldapRepository, "ldap://ad.company.com:389");
+
         sampleAdUser = new AdUser();
         sampleAdUser.setSamAccountName("jdoe");
         sampleAdUser.setCommonName("John Doe");
@@ -309,5 +309,36 @@ class AdUserServiceTest {
 
         assertTrue(result.isPresent());
         assertTrue(result.get().enabled()); // default to enabled
+    }
+
+    // ---- AUTHENTICATE ----
+
+    @Test
+    void authenticate_shouldReturnEmptyWhenUserNotFound() {
+        when(ldapRepository.findBySamAccountName("unknown")).thenReturn(null);
+
+        Optional<AdUserDto> result = adUserService.authenticate("unknown", "password");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void authenticate_shouldReturnEmptyWhenUserDisabled() {
+        sampleAdUser.setUserAccountControl("514"); // disabled
+        when(ldapRepository.findBySamAccountName("jdoe")).thenReturn(sampleAdUser);
+
+        Optional<AdUserDto> result = adUserService.authenticate("jdoe", "password");
+
+        assertTrue(result.isEmpty());
+    }
+
+    @Test
+    void authenticate_shouldReturnEmptyWhenDnIsNull() {
+        sampleAdUser.setDistinguishedName(null);
+        when(ldapRepository.findBySamAccountName("jdoe")).thenReturn(sampleAdUser);
+
+        Optional<AdUserDto> result = adUserService.authenticate("jdoe", "password");
+
+        assertTrue(result.isEmpty());
     }
 }

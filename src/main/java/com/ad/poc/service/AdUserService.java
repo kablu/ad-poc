@@ -5,6 +5,8 @@ import com.ad.poc.model.AdUser;
 import com.ad.poc.repository.AdUserLdapRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.ldap.core.support.LdapContextSource;
 import org.springframework.stereotype.Service;
 
 import java.util.Arrays;
@@ -24,9 +26,12 @@ public class AdUserService {
     private static final int UF_ACCOUNT_DISABLE = 2;
 
     private final AdUserLdapRepository ldapRepository;
+    private final String ldapUrl;
 
-    public AdUserService(AdUserLdapRepository ldapRepository) {
+    public AdUserService(AdUserLdapRepository ldapRepository,
+                         @Value("${spring.ldap.urls}") String ldapUrl) {
         this.ldapRepository = ldapRepository;
+        this.ldapUrl = ldapUrl;
     }
 
     /**
@@ -112,6 +117,55 @@ public class AdUserService {
         log.info("Deleting AD user: {}", samAccountName);
         ldapRepository.delete(samAccountName);
         log.info("AD user deleted successfully: {}", samAccountName);
+    }
+
+    /**
+     * Authenticate a user against Active Directory using LDAP bind.
+     * Looks up the user by sAMAccountName, then attempts to bind with their DN and password.
+     */
+    public Optional<AdUserDto> authenticate(String username, String password) {
+        log.info("Authenticating AD user: {}", username);
+
+        AdUser user = ldapRepository.findBySamAccountName(username);
+        if (user == null) {
+            log.warn("Authentication failed: user '{}' not found in AD", username);
+            return Optional.empty();
+        }
+
+        String userDn = user.getDistinguishedName();
+        if (userDn == null || userDn.isBlank()) {
+            log.warn("Authentication failed: no DN found for user '{}'", username);
+            return Optional.empty();
+        }
+
+        // Check if account is disabled
+        if (user.getUserAccountControl() != null) {
+            try {
+                int uac = Integer.parseInt(user.getUserAccountControl());
+                if ((uac & UF_ACCOUNT_DISABLE) != 0) {
+                    log.warn("Authentication failed: account '{}' is disabled", username);
+                    return Optional.empty();
+                }
+            } catch (NumberFormatException e) {
+                // ignore, proceed with bind
+            }
+        }
+
+        // Attempt LDAP bind with user's DN and password
+        try {
+            LdapContextSource bindSource = new LdapContextSource();
+            bindSource.setUrl(ldapUrl);
+            bindSource.setUserDn(userDn);
+            bindSource.setPassword(password);
+            bindSource.afterPropertiesSet();
+            bindSource.getContext(userDn, password).close();
+
+            log.info("Authentication successful for user: {}", username);
+            return Optional.of(toDto(user));
+        } catch (Exception e) {
+            log.warn("Authentication failed for user '{}': {}", username, e.getMessage());
+            return Optional.empty();
+        }
     }
 
     private AdUser toModel(AdUserDto dto) {

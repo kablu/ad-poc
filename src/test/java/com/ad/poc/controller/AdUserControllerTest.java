@@ -1,6 +1,7 @@
 package com.ad.poc.controller;
 
 import com.ad.poc.dto.AdUserDto;
+import com.ad.poc.dto.LoginRequest;
 import com.ad.poc.service.AdUserService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.BeforeEach;
@@ -34,8 +35,7 @@ class AdUserControllerTest {
     @MockitoBean
     private AdUserService adUserService;
 
-    @Autowired
-    private ObjectMapper objectMapper;
+    private final ObjectMapper objectMapper = new ObjectMapper();
 
     private AdUserDto sampleDto;
 
@@ -47,6 +47,60 @@ class AdUserControllerTest {
                 "CN=John Doe,OU=Users,DC=company,DC=com", "jdoe@company.com",
                 List.of("CN=Developers,OU=Groups,DC=company,DC=com"), true
         );
+    }
+
+    // ---- LOGIN ----
+
+    @Test
+    void login_shouldReturn200WithUserOnSuccess() throws Exception {
+        when(adUserService.authenticate("jdoe", "secret123")).thenReturn(Optional.of(sampleDto));
+
+        LoginRequest request = new LoginRequest("jdoe", "secret123");
+
+        mockMvc.perform(post("/api/v1/ad-users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success", is(true)))
+                .andExpect(jsonPath("$.message", is("Login successful")))
+                .andExpect(jsonPath("$.user.samAccountName", is("jdoe")))
+                .andExpect(jsonPath("$.user.displayName", is("John Doe")))
+                .andExpect(jsonPath("$.user.email", is("jdoe@company.com")));
+    }
+
+    @Test
+    void login_shouldReturn401OnInvalidCredentials() throws Exception {
+        when(adUserService.authenticate("jdoe", "wrongpass")).thenReturn(Optional.empty());
+
+        LoginRequest request = new LoginRequest("jdoe", "wrongpass");
+
+        mockMvc.perform(post("/api/v1/ad-users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isUnauthorized())
+                .andExpect(jsonPath("$.success", is(false)))
+                .andExpect(jsonPath("$.message", is("Invalid credentials")))
+                .andExpect(jsonPath("$.user").doesNotExist());
+    }
+
+    @Test
+    void login_shouldReturn400WhenUsernameBlank() throws Exception {
+        LoginRequest request = new LoginRequest("", "secret123");
+
+        mockMvc.perform(post("/api/v1/ad-users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    void login_shouldReturn400WhenPasswordBlank() throws Exception {
+        LoginRequest request = new LoginRequest("jdoe", "");
+
+        mockMvc.perform(post("/api/v1/ad-users/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
     }
 
     // ---- INSERT ----
