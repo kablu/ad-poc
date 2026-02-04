@@ -1,0 +1,261 @@
+<mxfile host="app.diagrams.net" modified="2026-02-04T00:00:00.000Z" agent="Claude" version="21.0.0" type="device">
+  <diagram id="admin-enrollment" name="RA Admin Enrollment Flow">
+    <mxGraphModel dx="1900" dy="1400" grid="1" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="1" pageScale="1" pageWidth="1800" pageHeight="1400" math="0" shadow="0">
+      <root>
+        <mxCell id="0" />
+        <mxCell id="1" parent="0" />
+
+        <!-- ==================== TITLE ==================== -->
+        <mxCell id="title" value="&lt;b&gt;RA Admin User Enrollment Flow&lt;/b&gt;&lt;br&gt;(PostgreSQL-based — No Active Directory)" style="text;html=1;fontSize=22;fontStyle=1;align=center;verticalAlign=middle;fillColor=#f5f5f5;strokeColor=#666666;rounded=1;" vertex="1" parent="1">
+          <mxGeometry x="350" y="20" width="550" height="50" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== PHASE 1: APPLICATION DEPLOYMENT ==================== -->
+        <mxCell id="phase1_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;strokeWidth=2;dashed=0;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="20" y="90" width="1230" height="280" as="geometry" />
+        </mxCell>
+        <mxCell id="phase1_label" value="&lt;b&gt;PHASE 1 : Application Deployment — Root Admin Auto-Creation&lt;/b&gt;" style="text;html=1;fontSize=16;fontStyle=1;align=left;fillColor=#E65100;fontColor=#FFFFFF;rounded=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="20" y="90" width="1230" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- DevOps deploys -->
+        <mxCell id="devops" value="DevOps / CI-CD" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#E65100;fontColor=#333333;strokeColor=#E65100;" vertex="1" parent="1">
+          <mxGeometry x="70" y="155" width="40" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="deploy_action" value="&lt;b&gt;Deploy RA Application&lt;/b&gt;&lt;br&gt;(Docker / Kubernetes / JAR)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=11;" vertex="1" parent="1">
+          <mxGeometry x="140" y="160" width="200" height="50" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_devops_deploy" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#E65100;strokeWidth=2;" edge="1" parent="1" source="devops" target="deploy_action">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Spring Boot starts -->
+        <mxCell id="spring_boot" value="&lt;b&gt;Spring Boot Starts&lt;/b&gt;&lt;br&gt;&lt;br&gt;1. Hibernate DDL auto-update&lt;br&gt;2. Creates &lt;b&gt;users&lt;/b&gt; table&lt;br&gt;3. Creates &lt;b&gt;user_roles&lt;/b&gt; table&lt;br&gt;4. Runs &lt;b&gt;DataInitializer&lt;/b&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=11;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="400" y="140" width="220" height="100" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_deploy_spring" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#E65100;strokeWidth=2;" edge="1" parent="1" source="deploy_action" target="spring_boot">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- DataInitializer creates root admin -->
+        <mxCell id="data_init" value="&lt;b&gt;DataInitializer / @PostConstruct&lt;/b&gt;&lt;br&gt;&lt;br&gt;if (userRepository.count() == 0) {&lt;br&gt;    User root = new User();&lt;br&gt;    root.username = &quot;ra-admin&quot;;&lt;br&gt;    root.password = encode(defaultPwd);&lt;br&gt;    root.roles = [&lt;b&gt;RA_ADMIN&lt;/b&gt;];&lt;br&gt;    root.enabled = true;&lt;br&gt;    userRepository.save(root);&lt;br&gt;}" style="shape=note;whiteSpace=wrap;html=1;size=18;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=10;align=left;spacingLeft=8;fontFamily=Courier New;" vertex="1" parent="1">
+          <mxGeometry x="680" y="130" width="280" height="155" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_spring_init" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=2;" edge="1" parent="1" source="spring_boot" target="data_init">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- PostgreSQL -->
+        <mxCell id="pg_init" value="&lt;b&gt;PostgreSQL&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;users&lt;/b&gt; table:&lt;br&gt;| id | username  | password_hash | roles    |&lt;br&gt;| 1  | ra-admin  | $2a$10$...   | RA_ADMIN |&lt;br&gt;&lt;br&gt;&lt;i&gt;Root Admin Created&lt;/i&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="680" y="300" width="280" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_init_pg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1565C0;strokeWidth=2;" edge="1" parent="1" source="data_init" target="pg_init">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <mxCell id="check_mark1" value="&lt;font color=&quot;#2E7D32&quot; style=&quot;font-size:28px;&quot;&gt;&#10004;&lt;/font&gt;" style="text;html=1;align=center;verticalAlign=middle;" vertex="1" parent="1">
+          <mxGeometry x="1000" y="195" width="40" height="40" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== PHASE 2: ROOT ADMIN LOGIN ==================== -->
+        <mxCell id="phase2_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E3F2FD;strokeColor=#1565C0;strokeWidth=2;dashed=0;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="20" y="400" width="1230" height="300" as="geometry" />
+        </mxCell>
+        <mxCell id="phase2_label" value="&lt;b&gt;PHASE 2 : Root Admin Login (PostgreSQL Authentication)&lt;/b&gt;" style="text;html=1;fontSize=16;fontStyle=1;align=left;fillColor=#1565C0;fontColor=#FFFFFF;rounded=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="20" y="400" width="1230" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Root Admin Actor -->
+        <mxCell id="root_admin" value="&lt;b&gt;Root Admin&lt;/b&gt;&lt;br&gt;(ra-admin)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#1565C0;fontColor=#333333;strokeColor=#1565C0;" vertex="1" parent="1">
+          <mxGeometry x="70" y="465" width="40" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Login Request -->
+        <mxCell id="login_req" value="&lt;b&gt;POST /api/v1/auth/login&lt;/b&gt;&lt;br&gt;{&lt;br&gt;  username: &quot;ra-admin&quot;,&lt;br&gt;  password: &quot;*****&quot;&lt;br&gt;}" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#E3F2FD;strokeColor=#1565C0;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="140" y="455" width="190" height="85" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_admin_login" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1565C0;strokeWidth=2;" edge="1" parent="1" source="root_admin" target="login_req">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Auth Controller -->
+        <mxCell id="auth_ctrl" value="&lt;b&gt;AuthController&lt;/b&gt;&lt;br&gt;&lt;br&gt;1. Receive credentials&lt;br&gt;2. Call UserService.authenticate()&lt;br&gt;3. Verify password against DB&lt;br&gt;4. Generate JWT token" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="390" y="450" width="230" height="95" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_login_ctrl" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1565C0;strokeWidth=2;" edge="1" parent="1" source="login_req" target="auth_ctrl">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- DB Lookup -->
+        <mxCell id="pg_lookup" value="&lt;b&gt;PostgreSQL Lookup&lt;/b&gt;&lt;br&gt;&lt;br&gt;SELECT * FROM users&lt;br&gt;WHERE username = 'ra-admin';&lt;br&gt;&lt;br&gt;BCrypt.matches(password, hash)&lt;br&gt;→ &lt;b&gt;Authenticated&lt;/b&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="690" y="440" width="260" height="120" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_ctrl_pg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1565C0;strokeWidth=2;" edge="1" parent="1" source="auth_ctrl" target="pg_lookup">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- JWT Token -->
+        <mxCell id="jwt_gen" value="&lt;b&gt;JWTTokenService.generateToken()&lt;/b&gt;&lt;br&gt;&lt;br&gt;Claims:&lt;br&gt;  sub = &quot;ra-admin&quot;&lt;br&gt;  roles = [&quot;RA_ADMIN&quot;]&lt;br&gt;  iss = &quot;RA-Service&quot;&lt;br&gt;  exp = 24h&lt;br&gt;  Signed: HS256" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="390" y="575" width="230" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_pg_jwt" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=2;" edge="1" parent="1" source="pg_lookup" target="jwt_gen">
+          <mxGeometry relative="1" as="geometry">
+            <Array as="points">
+              <mxPoint x="820" y="575" />
+              <mxPoint x="660" y="575" />
+              <mxPoint x="660" y="630" />
+            </Array>
+          </mxGeometry>
+        </mxCell>
+
+        <!-- JWT Response -->
+        <mxCell id="jwt_resp" value="&lt;b&gt;200 OK&lt;/b&gt;&lt;br&gt;{token: &quot;eyJ...&quot;,&lt;br&gt; roles: [&quot;RA_ADMIN&quot;],&lt;br&gt; expiresIn: 86400}" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="140" y="590" width="180" height="75" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_jwt_resp" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=2;dashed=1;" edge="1" parent="1" source="jwt_gen" target="jwt_resp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== PHASE 3: ROOT ADMIN CREATES NEW ADMIN ==================== -->
+        <mxCell id="phase3_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;strokeWidth=2;dashed=0;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="20" y="730" width="1230" height="340" as="geometry" />
+        </mxCell>
+        <mxCell id="phase3_label" value="&lt;b&gt;PHASE 3 : Root Admin Creates New Admin User (PostgreSQL)&lt;/b&gt;" style="text;html=1;fontSize=16;fontStyle=1;align=left;fillColor=#6A1B9A;fontColor=#FFFFFF;rounded=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="20" y="730" width="1230" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- Admin with JWT -->
+        <mxCell id="admin_jwt" value="&lt;b&gt;Root Admin&lt;/b&gt;&lt;br&gt;(Authenticated)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#6A1B9A;fontColor=#333333;strokeColor=#6A1B9A;" vertex="1" parent="1">
+          <mxGeometry x="70" y="790" width="40" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Create User Request -->
+        <mxCell id="create_req" value="&lt;b&gt;POST /api/v1/admin/users&lt;/b&gt;&lt;br&gt;Authorization: Bearer eyJ...&lt;br&gt;&lt;br&gt;{&lt;br&gt;  username: &quot;new-admin&quot;,&lt;br&gt;  password: &quot;SecureP@ss1&quot;,&lt;br&gt;  commonName: &quot;New Admin&quot;,&lt;br&gt;  email: &quot;newadmin@company.com&quot;,&lt;br&gt;  roles: [&quot;RA_ADMIN&quot;]&lt;br&gt;}" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="130" y="780" width="220" height="155" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_admin_create" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6A1B9A;strokeWidth=2;" edge="1" parent="1" source="admin_jwt" target="create_req">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- JWT Filter checks -->
+        <mxCell id="jwt_filter" value="&lt;b&gt;JWTAuthenticationFilter&lt;/b&gt;&lt;br&gt;&lt;br&gt;1. Extract Bearer token&lt;br&gt;2. Validate JWT signature&lt;br&gt;3. Extract roles: [RA_ADMIN]&lt;br&gt;4. Set SecurityContext&lt;br&gt;&lt;br&gt;&lt;b&gt;@PreAuthorize(&quot;hasRole(&#39;RA_ADMIN&#39;)&quot;)&lt;/b&gt;&lt;br&gt;→ Access GRANTED" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="400" y="780" width="230" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_req_filter" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#6A1B9A;strokeWidth=2;" edge="1" parent="1" source="create_req" target="jwt_filter">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- AdminUserController + Service -->
+        <mxCell id="admin_svc" value="&lt;b&gt;AdminUserService&lt;/b&gt;&lt;br&gt;&lt;br&gt;1. Validate input&lt;br&gt;2. Check duplicate username&lt;br&gt;3. Hash password (BCrypt)&lt;br&gt;4. Assign roles [RA_ADMIN]&lt;br&gt;5. userRepository.save()" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="400" y="940" width="230" height="110" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_filter_svc" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=2;" edge="1" parent="1" source="jwt_filter" target="admin_svc">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- PostgreSQL insert -->
+        <mxCell id="pg_insert" value="&lt;b&gt;PostgreSQL&lt;/b&gt;&lt;br&gt;&lt;br&gt;&lt;b&gt;users&lt;/b&gt; table:&lt;br&gt;| id | username   | password_hash | roles    |&lt;br&gt;| 1  | ra-admin   | $2a$10$...   | RA_ADMIN |&lt;br&gt;| 2  | &lt;b&gt;new-admin&lt;/b&gt;  | $2a$10$...   | &lt;b&gt;RA_ADMIN&lt;/b&gt; |&lt;br&gt;&lt;br&gt;&lt;i&gt;New Admin User Created&lt;/i&gt;" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=15;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="690" y="920" width="280" height="145" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_svc_pg" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#1565C0;strokeWidth=2;" edge="1" parent="1" source="admin_svc" target="pg_insert">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- 201 Response -->
+        <mxCell id="create_resp" value="&lt;b&gt;201 Created&lt;/b&gt;&lt;br&gt;{id: 2, username: &quot;new-admin&quot;,&lt;br&gt; roles: [&quot;RA_ADMIN&quot;]}" style="shape=note;whiteSpace=wrap;html=1;size=14;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="140" y="960" width="200" height="60" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_resp_back" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=2;dashed=1;" edge="1" parent="1" source="admin_svc" target="create_resp">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== PHASE 4: NEW ADMIN LOGIN ==================== -->
+        <mxCell id="phase4_box" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;strokeWidth=2;dashed=0;opacity=30;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1100" width="1230" height="230" as="geometry" />
+        </mxCell>
+        <mxCell id="phase4_label" value="&lt;b&gt;PHASE 4 : New Admin Logs In &amp; Manages RA System&lt;/b&gt;" style="text;html=1;fontSize=16;fontStyle=1;align=left;fillColor=#2E7D32;fontColor=#FFFFFF;rounded=1;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="20" y="1100" width="1230" height="35" as="geometry" />
+        </mxCell>
+
+        <!-- New Admin -->
+        <mxCell id="new_admin" value="&lt;b&gt;New Admin&lt;/b&gt;&lt;br&gt;(new-admin)" style="shape=umlActor;verticalLabelPosition=bottom;verticalAlign=top;html=1;outlineConnect=0;fillColor=#2E7D32;fontColor=#333333;strokeColor=#2E7D32;" vertex="1" parent="1">
+          <mxGeometry x="70" y="1155" width="40" height="60" as="geometry" />
+        </mxCell>
+
+        <!-- Login same flow -->
+        <mxCell id="new_login" value="&lt;b&gt;POST /api/v1/auth/login&lt;/b&gt;&lt;br&gt;{username: &quot;new-admin&quot;,&lt;br&gt; password: &quot;SecureP@ss1&quot;}" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=10;align=left;spacingLeft=8;" vertex="1" parent="1">
+          <mxGeometry x="150" y="1160" width="200" height="55" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_new_login" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=2;" edge="1" parent="1" source="new_admin" target="new_login">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Auth + JWT -->
+        <mxCell id="new_auth" value="&lt;b&gt;PostgreSQL Auth + JWT&lt;/b&gt;&lt;br&gt;&lt;br&gt;Same flow as Phase 2&lt;br&gt;→ JWT with roles: [RA_ADMIN]" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;" vertex="1" parent="1">
+          <mxGeometry x="410" y="1150" width="210" height="70" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_new_auth" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=2;" edge="1" parent="1" source="new_login" target="new_auth">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- Admin capabilities -->
+        <mxCell id="admin_caps" value="&lt;b&gt;RA_ADMIN Capabilities&lt;/b&gt;&lt;br&gt;&lt;br&gt;&#8226; Create / Manage other Admin users&lt;br&gt;&#8226; Create RA Officers &amp; Operators&lt;br&gt;&#8226; Approve / Reject certificates&lt;br&gt;&#8226; Revoke certificates&lt;br&gt;&#8226; View audit logs&lt;br&gt;&#8226; System configuration" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#E8F5E9;strokeColor=#2E7D32;fontSize=10;align=left;spacingLeft=10;" vertex="1" parent="1">
+          <mxGeometry x="690" y="1140" width="250" height="130" as="geometry" />
+        </mxCell>
+
+        <mxCell id="e_caps" style="edgeStyle=orthogonalEdgeStyle;rounded=1;strokeColor=#2E7D32;strokeWidth=2;" edge="1" parent="1" source="new_auth" target="admin_caps">
+          <mxGeometry relative="1" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== KEY NOTE: NO AD ==================== -->
+        <mxCell id="no_ad_note" value="&lt;b&gt;KEY DESIGN PRINCIPLE&lt;/b&gt;&lt;br&gt;&lt;hr&gt;&lt;br&gt;&#10060; RA Users do &lt;b&gt;NOT&lt;/b&gt; use Active Directory&lt;br&gt;&#10004; All RA users are stored in &lt;b&gt;PostgreSQL&lt;/b&gt;&lt;br&gt;&#10004; Authentication is password-based (BCrypt)&lt;br&gt;&#10004; Authorization via JWT + RBAC&lt;br&gt;&lt;br&gt;&lt;b&gt;User Hierarchy:&lt;/b&gt;&lt;br&gt;1. RA_ADMIN (root — auto-created on deploy)&lt;br&gt;2. RA_ADMIN (created by root admin)&lt;br&gt;3. RA_OFFICER (created by any admin)&lt;br&gt;4. RA_OPERATOR (created by any admin)&lt;br&gt;5. AUDITOR (created by any admin)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFEBEE;strokeColor=#C62828;fontSize=11;align=left;spacingLeft=12;shadow=1;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="440" width="270" height="260" as="geometry" />
+        </mxCell>
+
+        <!-- ==================== LEGEND ==================== -->
+        <mxCell id="legend" value="&lt;b&gt;Legend&lt;/b&gt;" style="swimlane;startSize=25;fillColor=#f5f5f5;strokeColor=#666666;fontColor=#333333;fontSize=12;" vertex="1" parent="1">
+          <mxGeometry x="1020" y="140" width="230" height="200" as="geometry" />
+        </mxCell>
+        <mxCell id="leg1" value="Deployment" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#FFF3E0;strokeColor=#E65100;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="35" width="100" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="leg2" value="RA Application" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#C8E6C9;strokeColor=#2E7D32;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="120" y="35" width="100" height="25" as="geometry" />
+        </mxCell>
+        <mxCell id="leg3" value="PostgreSQL DB" style="shape=cylinder3;whiteSpace=wrap;html=1;boundedLbl=1;backgroundOutline=1;size=8;fillColor=#BBDEFB;strokeColor=#1565C0;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="70" width="100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="leg4" value="Admin Action" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#F3E5F5;strokeColor=#6A1B9A;fontSize=10;" vertex="1" parent="legend">
+          <mxGeometry x="120" y="70" width="100" height="35" as="geometry" />
+        </mxCell>
+        <mxCell id="leg5" value="&lt;b&gt;→&lt;/b&gt; Request flow" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="115" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg6" value="&lt;b&gt;⇢&lt;/b&gt; Response flow" style="text;html=1;fontSize=10;align=left;" vertex="1" parent="legend">
+          <mxGeometry x="120" y="115" width="100" height="20" as="geometry" />
+        </mxCell>
+        <mxCell id="leg7" value="&lt;b&gt;No Active Directory&lt;/b&gt;&lt;br&gt;All users in PostgreSQL" style="text;html=1;fontSize=10;align=left;fontColor=#C62828;" vertex="1" parent="legend">
+          <mxGeometry x="10" y="145" width="210" height="40" as="geometry" />
+        </mxCell>
+
+      </root>
+    </mxGraphModel>
+  </diagram>
+</mxfile>
